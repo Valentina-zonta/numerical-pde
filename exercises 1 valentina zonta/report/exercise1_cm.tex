@@ -1,0 +1,426 @@
+\documentclass{article}
+
+% Language setting
+% Replace `English' with e.g. `Spanish' to change the document language
+\usepackage[english]{babel}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{caption}
+\usepackage{float}
+% Set page size and margins
+% Replace `letter paper' with `a4paper' for UK/EU standard size
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+% Useful packages
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+\title{
+Homework 1. Numerical methods for ODES}
+\author{Valentina Zonta}
+
+\begin{document}
+\maketitle
+
+
+\section{Exercise 1}
+I implemented the 2-step Simpson method to solve the test equation
+\begin{equation}
+    y'=-5y \quad ,y(0)=1
+\end{equation}
+with h=0.05 and $t_{N}=6$
+
+
+The 2-step Simpson method follows the formula:
+\begin{equation}
+    y_{n+2} = y_n + \frac{h}{3} \left( f_n + 4f_{n+1} + f_{n+2} \right),
+\end{equation}
+where in this particular case $f(t, y) = -5y$.\\
+The code used for this method is the following:
+\begin{verbatim}
+function simspon2(c,d)
+format long;
+    h = 0.05;  % step size
+    T = 6;  % final time
+    N = T / h;  % number of intervals
+
+    % Initialize arrays
+    t = 0:h:T;
+    y = zeros(N+1, 1);
+    y(1) = 1;
+    y(2)=c;
+    
+    
+
+      % Perform the 2-step Simpson's method
+     for i = 1:N-1
+         y(i+2) = (y(i) + (h / 3) * (-5 * y(i) + 4 * (-5 * y(i+1))) )/(1+(5/3)*h );
+     end
+
+      
+\end{verbatim}
+To iterate a two-step method I needed to compute the second initial value y(1). I computed it in three ways:
+\begin{itemize}
+    \item as the exact solution $e^{-5h}$
+    \item by a 4th order Runge-Kutta method 
+    \item with the forward Euler method
+\end{itemize}
+I created the Simpson function such that in the input I could insert the second initial condition, found in three different ways as just written above.\\
+The first method is trivial. In the second one, I used the 4-order runge kutta formula 
+\begin{equation}
+    y_{n+1} = y_n + \frac{1}{6} h \left(k_1 + 2k_2 + 2k_3 + k_4 \right),
+    \label{rk4}
+\end{equation}
+
+where
+\begin{align*}
+k_1 &= f(x_n, y_n), \\
+k_2 &= f\left(x_n + \frac{1}{2} h, y_n + \frac{1}{2} h k_1\right), \\
+k_3 &= f\left(x_n + \frac{1}{2} h, y_n + \frac{1}{2} h k_2\right), \\
+k_4 &= f\left(x_n + h, y_n + h k_3\right).
+\end{align*}
+For the last one I used
+
+\begin{equation}
+    y_{n+1} = y_n + hf(x_n, y_n)
+\end{equation}
+The values of the second initial condition are:
+\begin{table}[H]
+    \centering
+    \begin{tabular}{cccc}
+        & exact  &4RK  & FE\\
+        \hline
+      y(2)   & 0.778800 & 0.778808 &0.750000 \\
+    \end{tabular}
+    
+    \label{tab:my_label}
+\end{table}
+Using the three different y(2) I plot the error as the difference between the exact and the approximate solution 
+
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[b]{0.45\linewidth} % Adjust the width as needed
+        \centering
+        \includegraphics[width=\linewidth]{es1.3im.jpg}
+        \caption{errors obtained with FW}
+        \label{fig:image1}
+    \end{minipage}
+    \hspace{0.05\linewidth} % Add some horizontal space between the images
+    \begin{minipage}[b]{0.45\linewidth} % Adjust the width as needed
+        \centering
+        \includegraphics[width=\linewidth]{es1.2im.jpg}
+        \caption{errors obtained with 4RK}
+        \label{fig:image2}
+    \end{minipage}
+\end{figure}
+    
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{es1.1im.jpg}
+    \caption{error from real value of y(2)}
+    \label{error obtained with exact initial value}
+\end{figure}
+In conclusion, the initial values y(2) obtained with the three methods are similar for 4RK and real value, (in fact the error's magnitudes are close to each other), and are much larger than the one obtained with FE ($10^{3-4}$  bigger). In all the cases the error diverges implying instability in the numerical solution.
+
+\section{ Exercise 2}
+To solve the following equation using the 4-stage Runge Kutta method
+\begin{equation}
+    \frac{dy}{dt} = -10y^2, \quad y(0) = 1
+\end{equation}
+with $t\in (0,2)$ and $h=2^{-k} \quad k=5, \dots 10$ I created a function that gives back $y(t)$ and calculate the error at the final time T=2. The following plot creates a log-log plot of this error as a function of the number of steps
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{es2im.jpg}
+    \caption{loglog plot of error}
+    \label{fig:enter-label}
+\end{figure}
+I also provide a table with the values of h and the error in each row:\\
+
+
+
+\begin{center}
+    
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    \(h\) & errors & Error Ratio(errors[i] / errors[i-1]) & Step Size Ratio  (h[i] / h[i-1]) \\
+    \hline
+    0.03125 & \(2.2918 \times 10^{-7}\) & - & - \\
+    0.015625 & \(1.7858 \times 10^{-8}\) & 0.078 & 0.5 \\
+    0.0078125 & \(1.1602 \times 10^{-9}\) & 0.065 & 0.5 \\
+    0.00390625 & \(7.3129 \times 10^{-11}\) & 0.063 & 0.5 \\
+    0.001953125 & \(4.5796 \times 10^{-12}\) & 0.063 & 0.5 \\
+    0.0009765625 & \(2.8638 \times 10^{-13}\) & 0.063 & 0.5 \\
+    \hline
+\end{tabular}
+\end{center}
+The reduction in error as h decreases confirms the expected behavior of the RK4 method, where decreasing the step size results in increased accuracy. The ratios between consecutive errors and step sizes show a consistent pattern which follows the order of convergence of the error $O(h^{4})$ ($\Delta h = \frac{1}{2} \rightarrow \frac{1}{16}=0.0625 \sim $ error ratio in table ). Moreover, the plot shows that the errors follow a double logarithmic trend(linear in the log-log plot) with slope 4 implying that the errors follow scale oh $h^{4}$. 
+
+
+\section{Exercise 3}
+We assume to use the 4-stage Runge Kutta method and computed $y_ {n+1}^{h}$, $y_ {n+2}^{h/2}$ two approximate $y(tn + h)$. To develop a formula for the Richardson extrapolation we shall start from its definition:\\
+Let $A_{0}(h)$ be an approximation of $A^{*}(exact value)$ that depends on a positive step size h with an error formula of the form 
+
+\begin{equation}
+    A^{*}=A_{0}(h)+a_{0}h^{k_{0}}+a_{1}h^{k_{1}}+a_{2}h^{k_{2}}+\dots 
+\end{equation}
+ 
+In this notation $ O(h^{k_{i}})$ represents the truncation error of the $A_{i(h)*}$ approximation such that $A^{*}=A_{i}(h)+O(h^{k_{i}})$.\\
+By assumption of the homework, the local truncation error is $C_{n}(h^{5})$ with $C_{n}$ depending on the derivates of y. Therefore we can write:
+\begin{equation}
+   y^{*}=y_ {n+1}^{h}+ C_{n}(h^{5})+O(h^{6}) \quad \quad y^{*}=y_ {n+2}^{h/2}+ 2C_{n} \left( \frac{h}{2} \right) ^{5}+O(h^{6})
+\end{equation}
+where the second equation presents a factor 2 in front of $C_{n}$ because we need two steps of length $\frac{h}{2}$ to get to $=y_ {n+2}^{h/2}$ .\\ 
+If we treat the $C_{n}$ from both equations close to each other, we can solve the system of the previous equation with the unknown quantity $y^{*}$. From the second equation, we get
+\begin{equation}
+    C_{n}=\frac{16}{h^{5}} \left( y^{*}-y^{h/2}_{n+2} \right)
+    \label{cn}
+\end{equation}
+and substituting it into the first we obtain
+\begin{equation}
+    y^{*}=y^{h}_{n+1}+ \left( y^{*}-y^{h/2}_{n+2} \right)\frac{16h^{5}}{h^5}.
+\end{equation}
+
+Therefore the final result for the exact value of $y$ is:
+\begin{equation}
+    y^{*}=\frac{-y^{h}_{n+1}+16y^{h/2}_{n+2}}{15}.
+\end{equation}
+It is also possible to estimate the truncation error from this result using \ref{cn}
+\begin{equation}
+    C_{n}h^{5}= \frac{16}{15} (y^{h}_{n+1}+y^{h/2}_{n+2}).
+\end{equation}
+
+ In conclusion, applying Richardson extrapolation to the Runge-Kutta method we obtain a more accurate numerical solution. This is acquired using multiple solutions with different step sizes and combining them to reduce the error inherent in the original method.
+\section{Exercise 4}
+Let's obtain the BDF2 formula (k = 2) and find its local truncation
+error.
+We can write an ODE as
+\begin{equation}
+    y'(t)=f(t,y(t)) \quad  y(t_{0})=y_{0}
+\end{equation}
+
+we can generalize the previous formula as
+\begin{equation}
+    \sum^{k}_{j=0}\alpha_{j}y_{n+j}=h\beta_{k}f(t_{n+k},y_{n+k})  \quad \beta_{k-1}, \dots, \beta_{0}=0
+    \label{general}
+\end{equation}
+
+For the backward differentiation formula, we need to interpolate the function $y(t)$, instead of $f$ as for forward formulas, using the points $(t_{n},y_{n}),\dots,(t_{n+k},y_{n+k})$. We can obtain a Polynomial $P(t)$ using the Lagrange interpolation formula, and approximate $y'(t)$ with $P'(t)$. \\
+
+For $k=2$ we have to interpolate 3 points, so from the general Lagrange interpolation formula:
+\begin{equation}
+    P_{j}(x)=y_{j}\prod^{n}_{k=0, k \neq j} \frac{x-x_{k}}{x_{j}-x_{k}}
+\end{equation}.
+
+
+we get the following polynomial
+\begin{equation}
+    P(t)=y_{n}\frac{(t-t_{n+1})(t-t_{n+2})}{2h^{2}}+y_{n+1}\frac{(t-t_{n})(t-t_{n+2})}{-h^{2}}+y_{n+2}\frac{(t-t_{n})(t-t_{n+1})}{2h^{2}}
+    \label{pt}
+\end{equation}
+
+
+
+We now derive eq. \ref{pt} 
+\begin{equation}
+    P'(t)=\frac{y_{n}}{2h^{2}} [(t-t_{n+1})+(t-t_{n+2})]+\frac{y_{n+1}}{-h^{2}} [(t-t_{n})+(t-t_{n+2})]+ \frac{y_{n+2}}{2h^{2}} [(t-t_{n})+(t-t_{n+1})]
+\end{equation}
+
+As said earlier we want to find $P'(t_{n+k})$, so in this case $P'(t_{n+2})$, knowing that $t_{n+k}-t_{n+k-1}=h$
+\begin{equation}
+    P'(t_{n+2})=\frac{y_{n}}{2h}-\frac{2y_{n+1}}{h}+\frac{3y_{n+2}}{2h}
+\end{equation}
+
+It is possible now to write \ref{general} in this particular case
+\begin{equation}
+    y_{n+2}-\frac{4}{3}y_{n+1}+\frac{1}{3}y_{y_{n}}=\frac{2}{3}hf(t_{n+2},y_{n+2}).
+\end{equation}
+ Recalling the interpolation error
+ 
+\begin{equation}
+    E(t)=\frac{(t-t_{k})\dots(t-t_{n})f^{k+1}(\eta(t)=}{(k+1)!}
+\end{equation}
+
+to obtain the local truncation error it is necessary to calculate $|E'(t)|$ in its maximum. So calculating the derivate for $k=2$:
+
+\begin{align*}
+    E'(t)&=\frac{1}{6}\big([(t-t_{n+1})(t-t_{n})f^{3}(\eta(t))]+[(t-t_{n+2})(t-t_{n})f^{3}(\eta(t))]+[(t-t_{n+1})(t-t_{n+2})f^{3}(\eta(t))]+\\
+    &+[(t-t_{n})(t-t_{n+1})(t-t_{n+2})f^{4}(\eta(t))(\eta')]\big)
+\end{align*}
+If $f^{4}$ is neglected, 
+
+\begin{align*}
+E'(t)&=\frac{f^{3}(\eta(t))}{6}([(t-t_{n+1})(t-t_{n})]+[(t-t_{n+2})(t-t_{n})]+[(t-t_{n+1})(t-t_{n+2})]\\
+&=\frac{f^{3}(\eta(t))}{6}(3t^{2}- t*2*(t_n + t_{n+1} + t_{n+2}) + t_nt_{n+2} + t_{n+1}t_{n+2}+t_{n}t_{n+1})
+\label{eq_primo}
+\end{align*}
+
+that is a second order plynimial in $t$, with the constant $at^{2}, a>0$, so geometrically a convex parabola. Therefore the maximum is in the extreme of the domain. \\
+
+Choosing $k=2$ the extreme are in $n$ and $n+2$, so substituting them into the previous equation:
+\begin{equation}
+    E'(t_{n})=\frac{h^2}{3}f^{(3)}(\eta(t_{n})) \quad \quad   E'(t_{n+2})=\frac{h^2}{3}f^{(3)}(\eta(t_{n+2}))
+\end{equation}
+\newline
+
+To prove that BDF2 is absolutely stable in the real interval $\Bar{h} \in (- \infty , 0)$ we shall give the definition of region of absolute stability:\\
+A linear multistep method is called stable for a given $\Bar{h}$ if and only if all the roots $r_{s}(\Bar{h})$ of the polynomial $\pi(z, \Bar{h})$ satisfy
+\begin{equation}
+    |r_{s}|, \quad s=1, \dots, k.
+\end{equation}
+The region in the complex plane (or the interval) where this occurs is called the region of absolute stability.
+In our case the polynomial and its roots are
+\begin{equation}
+    t^{2}(3 - 2 \overline{h}) -4t + 1 = 0 \quad \quad t_{1,2}=\frac{2\pm \sqrt{1+2\Bar{h}}}{3-2\Bar{h}}
+\end{equation}
+so we have to find the region where $|t_{1,2}|<1$ in function of $\Bar{h}$.
+ We can divide it into two cases, whether the solutions are real or complex. 
+ \begin{itemize}
+     \item If the solutions are real the intersection of two intervals is $\Bar{h}>4 \cup -\frac{1}{2}\leq 0$ $\cap$ $\Bar{h}>\frac{3}{2} \cup -\frac{1}{2}\leq \frac{3}{2}$. Therefore if we are checking the stability in $(- \infty,0)$, our solution exists for $\Bar{h}\leq 0$, so in all the interval.
+     \item If the solutions are complex, so $1+2h<0$ we can write
+     \begin{equation}
+         t_{1,2}=\frac{|2\pm i \sqrt{-1-2\Bar{h}}|}{|3-2\Bar{h}|}= \frac{\sqrt{3-2\Bar{h}}}{|3-2\Bar{h}|}
+     \end{equation}
+     and the solution exist for $\Bar{h}<1$ so in all our interval.
+ \end{itemize}
+
+\section{Exercice 5}
+We want to solve the linear system of ODE's
+\begin{align*}
+    y'(t)&=-Ay(t)\\
+    y(0)&=[1 1 1 1 \dots 1]^{T}\\
+    \label{odesys}
+\end{align*}
+with three different methods.\\
+In all cases $A$ is generated by the commands:
+
+\begin{verbatim}
+    nx = 1 0 0;
+G = numgrid ( ’ S ’ , nx ) ;
+A = d el s q (G) ∗ ( nx−1)ˆ2 ;
+\end{verbatim}
+
+and $t\in (o,o,1]$. The exact solution at final time is 
+\begin{equation}
+    y=exp(-0.1A)y_{0}
+\end{equation}
+From theory, we know that we can rewrite an ODE's system using a diagonal matrix $D$ and a matrix $V$ whose columns are the eigenvectors of A. Calling $z(t)=V^{-1}y(t)$ the system can be written as
+\begin{equation}
+    z_{i}'(t)=\lambda_{i}z_{i}(t)
+    \label{zeq}
+\end{equation}
+where $\lambda_{i}$ are the eigenvalues of the matrix $A$.\\ Studying the stability of runge kutta methods and considering the model problem 
+\begin{equation}
+    y'=\lambda y \quad,\quad \quad y(0)=y_{0}
+    \label{modeleq}
+\end{equation}
+we define a new variable  $\Bar{h}=h\lambda$. The method of Runge Kutta of $R$-stage results in a form like
+\begin{equation}
+    y_{n+1}=A_{r}(\Bar{h})y_{n}
+\end{equation}
+and is said to be absolutly stable if $|=A_{R}(\Bar{h})|<1$.
+
+So to compute the interval of absolute stability of the 4th order Runge-Kutta method for this problem, having for each element of the system a model problem-like equation (\ref{modeleq} $\sim$ \ref{zeq}),  we simply have to solve 
+
+\begin{equation}
+    |A_{4}(\Bar{h})|=|1+\Bar{h}+\frac{\Bar{h}^{2}}{2}+\frac{\Bar{h}^{3}}{6}+\frac{\Bar{h}^{4}}{24}|<1
+\end{equation}
+ with $\Bar{h}=h\lambda^{*}$ with $\lambda^{*}$ the largest modulus eigenvalues of A. \\
+\color{blue} % Set the text color to blue
+
+Computing $\lambda^{*}$ with \texttt{lambda = -eigs(A,1,’lm’)} and calculating the inequality we find that the
+interval of absolute stability is $h \in (0, 3.546 \cdot 10^{-5})$.
+
+\color{black}
+Then I solved the problem using three methods (ode45, Crank Nicolson, BDF3) .\\
+For the first one, I solved the problem by the function ode45 and computed the infinity modulus errors concerning the exact value.\\
+For the second one (CN) I have written the method applied to our system more conveniently, to apply the Conjugate Gradient method. From
+\begin{equation}
+    y_{n+1}=y_{n}+\frac{h}{2}(-Ay_{n}-Ay_{n+1})
+\end{equation}
+to
+\begin{equation}
+    (I+\frac{h}{2}A)y_{n+1}=(I-\frac{h}{2}A)y_{n}.
+\end{equation}
+I computed this last system using \texttt{pcg} function in matlab for three different step size $h=[10^{-3} 10^{-4} 10^{-5}] $ and tolerance $10^{-3}$. Finally, I computed the infinity norm errors.
+\\
+For the last method (BDF3) I have written, as in the previous case, the system in a convenient way. From
+\begin{equation}
+    y_{n+3}-\frac{18}{11}y_{n+2}+\frac{9}{11}y_{n+1}-\frac{2}{11}y_{n}=-\frac{6}{11}hA
+\end{equation}
+to
+\begin{equation}
+     y_{n+3}(I+\frac{6}{11}A)=\frac{18}{11}y_{n+2}-\frac{9}{11}y_{n+1}+\frac{2}{11}y_{n}.
+\end{equation}
+To solve this three-step problem I needed two other initial conditions. I simply used y(1) and y(2) already calculated in CN.  
+I then applied the pcg function for the stemps size $h=[10^{-3} 10^{-4} 10^{-5}] $, tolerance $10^{-3}$ and computed the errors.\\
+For all three methods, I saved CPU time.
+The results are summed up in the following table
+\newline
+\newline
+
+\begin{minipage}{\linewidth}
+    \centering
+    \begin{tabular}{ccccc}
+       method  & h &  errors & CPU time &num step\\
+       \hline
+        ode45 & * & 1.155e-05 & 10.80&9445\\
+        CN & $10^{-3}$ &  3.783e-05&0.39&100 \\
+         CN&  $10^{-4}$& 1.397e-07 &1.38&1000 \\
+         CN& $10^{-5}$ &  1.396e-09&11.89 &10000\\
+         BDF3& $10^{-3}$ &3.727e-07  & 0.24&100\\
+        BDF3 & $10^{-4}$ & 3.774e-10 & 1.37&1000\\
+        BDF3 & $10^{-5}$ &1.651e-12  &10.87&10000\\
+    \end{tabular}
+
+    \label{tab:my_label}
+\end{minipage}
+\newline
+\newline
+The methods become more precise as h gets smaller as expected .\\
+For CN as we decrease the step size $h$, the error generally decreases quadratically following its order $O(h^{2})$.\\
+The BDF3 Method (Third-order Backward Differentiation Formula) specifically is a third-order accurate method. As the step size decreases, the error for BDF3 diminishes more rapidly, typically with cubic convergence, as we see from the results, apart from $h=10^{-5}$(I suppose the cause could be machine precision ).\\
+In general, the bdf3 method exhibits faster error reduction as compared to the other lower-order method. It tends to have higher-order convergence, leading to quicker reductions in error as the step size decreases.
+\bibliography{sample}
+
+\section{Exercise 6}
+We were given the Lotka-Volterra equations
+
+\begin{align*}
+    \frac{dx}{dt} &= x(t)(\alpha - \beta y(t)), \\
+    \frac{dy}{dt} &= y(t)(\gamma x(t) - \delta),
+\end{align*}
+with initial conditions:
+\[ x(0) = x_0, \quad y(0) = y_0 \]
+
+I solved the Lotka-Volterra equation with parameters $\alpha = 0.2$, $\beta = 0.01$, $\gamma = 0.004$, $\delta = 0.07$ by a 4th order RK method using as initial conditions $x_0 = 19$, $y_0 = 22$, $t_0 = 0$, $T = 300$ and a step size $h = 10^{-3}$.
+
+To compute the problem I simply used the RK4 method defined in \ref{rk4} on the two variables that are dependent on each other, so for every cycle of time I had to compute both x and  (not independently) as follows:
+
+\begin{verbatim}
+    for n = 1:N
+    K1x = f(x_vals(n), y_vals(n));
+    K1y = g(x_vals(n), y_vals(n));
+
+    K2x = f(x_vals(n) + h * K1x / 2, y_vals(n) + h * K1y / 2);
+    K2y = g(x_vals(n) + h * K1x / 2, y_vals(n) + h * K1y / 2);
+
+    K3x = f(x_vals(n) + h * K2x / 2, y_vals(n) + h * K2y / 2);
+    K3y = g(x_vals(n) + h * K2x / 2, y_vals(n) + h * K2y / 2);
+
+    K4x = f(x_vals(n) + h * K3x, y_vals(n) + h * K3y);
+    K4y = g(x_vals(n) + h * K3x, y_vals(n) + h * K3y);
+
+    x_vals(n + 1) = x_vals(n) + h * (K1x + 2 * K2x + 2 * K3x + K4x) / 6;
+    y_vals(n + 1) = y_vals(n) + h * (K1y + 2 * K2y + 2 * K3y + K4y) / 6;
+end
+\end{verbatim}
+ The results for prey and predator are given in the following plot.
+ \begin{figure}[H]
+     \centering
+     \includegraphics[width=0.7\linewidth]{es3im.jpg}
+     \caption{Lotka-Volterra results}
+     \label{fig:enter-label}
+ \end{figure}
+\end{document}

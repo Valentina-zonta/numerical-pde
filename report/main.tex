@@ -1,0 +1,386 @@
+\documentclass{article}
+
+% Language setting
+% Replace `English' with e.g. `Spanish' to change the document language
+\usepackage[english]{babel}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{caption}
+\usepackage{float}
+\newtheorem{theorem}{Theorem}
+
+% Set page size and margins
+% Replace `letter paper' with `a4paper' for UK/EU standard size
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+% Useful packages
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{booktabs}
+
+% Define a new command for double vertical bars with an argument
+\newcommand{\doubleVert}[1]{\lVert #1 \rVert}
+
+
+\title{
+Homework 2. Numerical methods for ODES}
+\author{Valentina Zonta}
+
+\begin{document}
+\maketitle
+
+
+\section{Exercise 1}
+
+We produce an implementation of PCG following the algorithm using the syntax:
+
+\begin{verbatim}
+[x, resvec, iter] = mypcg(A, b, tol, maxit, L)
+\end{verbatim}
+
+In the algorithm
+\begin{verbatim}
+Input: x_0, A, M, b, k_max, tol
+r_0 = b - Ax_0, p_0 = M^(-1)r_0, k = 0, rho_0 = r_0^T M^(-1)r_0
+
+while k <= k_max and ||r_k|| > tol ||b|| do
+    1. z_k = Ap_k
+    2. alpha_k = rho_k / (z_k^T p_k)
+    3. x_{k+1} = x_k + alpha_k p_k
+    4. r_{k+1} = r_k - alpha_k z_k
+    5. g_{k+1} = M^(-1)r_{k+1}
+    6. rho_{k+1} = r_{k+1}^T g_{k+1}
+    7. beta_k = rho_{k+1} / rho_k
+    8. p_{k+1} = g_{k+1} + beta_k p_k
+    9. k = k + 1
+end while
+
+\end{verbatim}
+, we apply the Cholesky preconditioner $r_{k+1} = M^{-1} r_{k+1}$, performing a sequential solution of two sparse triangular linear systems. 
+From $r_{k+1} = (LL^T)^{-1} r_{k+1} $, we obtain $LL^T r_{k+1} = r_{k+1} $ and hence:
+
+
+
+\[
+Ly = r_{k+1}
+\]
+
+\[
+L^T r_{k+1} = y\]
+
+We then compare the implementation of the PCG with the Matlab pre-built function. Using the Cholesky preconditioner, the exact solution with all ones $b$ (right handed side), tolerance $1e-8)$, and a maximum iteration number of $50$, we get the plot in Fig.\ref{PCG Matlab vs implemented PCG}:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{es1.jpg}
+    \caption{PCG Matlab vs implemented PCG}
+    \label{PCG Matlab vs implemented PCG}
+\end{figure}
+As we can see, the implemented PCG and the Matlab PCG behave in the same manner. 
+
+\section{Exercise 2}
+We create a sparse matrix $A$ representing the discrete Laplacian operator on a 2D grid, using the method of finite differences with $nx=[102,202,402,802]$ grid points along each dimension. We set the r.h.s. $b$ corresponding to the exact solution x with components $x_{i}=\frac{1}{\sqrt{i}}$, with $i=1,2,\dots$. We use tolerance = $10^{−8}$ and 5000 as the maximum number of iterations.
+We calculate the mesh discretization parameter $h$ as $h=1/(nx(i)-2)$. Indeed the border of the mesh is missing the four corners, and the spaces between the points are the number of points minus 1.
+
+We solve the linear system $Ax=b$ in four different ways: without preconditioner, PCG with IC(0), PCG with IC droptol $10^{-2}$ and last IC droptol $10^{-3}$.
+The results are shown in the following table:
+\begin{table}[H]
+    \centering
+ 
+    \begin{tabular}{cccccc}
+        \toprule
+        $n$ & $h$ & CG & PCG IC(0) & PCG droptol $10^{-2}$ & PCG droptol $10^{-3}$ \\
+        \midrule
+        102 & 0.01000 & 283 & 87 & 45 & 17 \\
+        202 & 0.00500 & 532 & 159 & 78 & 30 \\
+        402 & 0.00250 & 948 & 282 & 137 & 53 \\
+        802 & 0.00125 & 1792 & 533 & 258 & 9 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+To verify the dependence between the number of iterations and the root of the condition number (proportional to $h^{-1}$) we write $h^{-1} \propto \alpha \cdot iter $. In the following table, we show the constant $\alpha$ for each CG.  The constants get a little smaller depending on h, probably due to the machine's precision. However, there is proportionality for each method.
+
+
+\begin{table}[H]
+    \centering
+ 
+    \begin{tabular}{ccccc}
+        \toprule
+        $\frac{1}{h}$ & $\alpha_{\text{PCG \& IC(0)}}$ & $\alpha_{\text{IC(0)}}$ & $\alpha_{\text{PCG droptol } 10^{-2}}$ & $\alpha_{\text{PCG droptol } 10^{-3}}$ \\
+        \midrule
+        100 & 2.8 & 0.8 & 0.4 & 0.2 \\
+        200 & 2.7 & 0.8 & 0.4 & 0.2 \\
+        400 & 2.4 & 0.7 & 0.3 & 0.1 \\
+        800 & 2.2 & 0.7 & 0.3 & 0.1 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+
+%If we use the Euclidean norm, recall that
+%\[
+%\kappa(A) = \frac{\sigma_{\text{max}}(A)}{\sigma_{\text{min}}(A)}
+%\]
+
+%which simplifies for symmetric positive definite matrices to
+%\[
+%\kappa(A) = \frac{\lambda_{\text{max}}(A)}{\lambda_{\text{min}}(A)}
+%\]
+
+%\begin{equation}
+%\frac{1}{K(A)} \frac{\doubleVert{r}}{\doubleVert{b}}\leq \frac{\doubleVert{x^{*}-x}}%{\doubleVert{x*}}\leq \frac{\doubleVert{r}}{\doubleVert{b}}K(A)
+%\end{equation}
+
+%We have upper ad lower bound of the relative error. Define %$K(A)=\left\|A^{-1}\right\|\|A\|$ condition number of $A$
+
+\section{Exercise 3}
+
+
+
+
+
+
+
+
+
+The matrix described in the exercise is:
+\[
+A =
+\begin{bmatrix}
+    200 & 0 & 0 & 0 & 0 & 0 & \dots \\
+    0 & 400 & 0 & 0 & 0 & 0 & \dots \\
+    0 & 0 & 600 & 0 & 0 & 0 & \dots \\
+    0 & 0 & 0 & 800 & 0 & 0 & \dots \\
+    0 & 0 & 0 & 0 & 1000 & 0 & \dots \\
+    0 & 0 & 0 & 0 & 0 & 1 & \dots \\
+    \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \ddots \\
+\end{bmatrix}
+\].
+
+
+For our purpose we use the following theorem, proved at \url{https://pages.di.unipi.it/gemignani/lecture2.pdf}.
+
+\begin{theorem}
+Let \(A\) be symmetric positive definite (spd). Assume that there are exactly \(k \leq N\) distinct eigenvalues of \(A\). Then the Conjugate Gradient (CG) iteration terminates in at most \(k\) iterations.
+\end{theorem}
+
+We modify the prove of previous theorem in order to demonstrate the theorem based on having 6 eigenvalues with degeneracy.
+
+Let $\lambda_m$ be the eigenvalues associated with the eigenvectors $\left|\lambda_{m, n^{\prime}}\right\rangle$ where $n^{\prime}$ is the degeneracy index. Using the Spectral Theorem we can write the solution 
+
+\begin{equation}
+x^*=\sum_m^6 \sum_{\pi^{\prime}}^{d\left(\lambda_m\right)} \frac{\gamma_{m, \Omega^{\prime}}}{\lambda_m}\left|\lambda_{m, n^{\prime}}\right\rangle=\sum_m^6\left|v_m\right\rangle ,
+\end{equation}
+where we wrote the vector $v$ as a linear combination of the degenerate eigenvectors living in the eigenspaces of dim $6$.
+Then with the same reasoning we can expand the Matrix $A$ and $P(A)$ as:
+\begin{equation}
+A=\sum_{k=1}^6 \lambda_k \sum_{n=1}^{d\left(\lambda_n\right)}\left|\lambda_{k, n}\right\rangle\left\langle\lambda_k, n\right|=\sum_{k=1}^6 \lambda_k\left|w_k\right\rangle\left\langle w_k\right| ,
+\end{equation}
+where $|w_k\rangle\langle w_k| = \sum_{n=1}^{d(\lambda_n)}|\lambda_{k, n}\rangle\langle\lambda_k, n| $ is a projector, since sum of orthogonal projectors.
+\begin{equation}
+P(A)=\sum_{k=1}^6 \prod_{l=1}^6 \frac{\left(\lambda_l-\lambda_k\right)}{\lambda_l}\left|w_k\right\rangle\left\langle w_k\right| .
+\end{equation}
+Then we get :
+\begin{align*}
+P(A) x^* & =\sum_k \prod_{l=1}^6\left(\lambda_l-\lambda_k\right)\left|\omega_k\right\rangle \cdot \text{const} , \quad\quad\left(\left\langle w_k \mid v_m\right\rangle=\text{const} \cdot \delta_{m,k} \right. )\\
+& =\sum_{k=1}^6\left(\lambda_1-\lambda_k\right)\left(\lambda_2-\lambda_k\right) \ldots \quad\left|w_k\right\rangle \cdot \text{const} =0
+\end{align*}
+
+Because $\left\|x^*-x_k\right\|_A=\min _{p \in P_k}\left\|p(A)\left(x^*-x_0\right)\right\|_A$ and $x_0=0$, we get: 
+\begin{equation}
+    \left\|x_k-x^*\right\|_A \leqslant\left\|\bar{P}(A) x^*\right\|_A=0
+\end{equation}
+So the algorithm ends at the iteration number k=6. As we can see from the plot underneath the total iterations necessary for the CG method are exactly 6.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{es3.jpg}
+    \caption{PCG Matlab vs implemented PCG}
+    \label{PCG Matlab vs implemented PCG}
+\end{figure}
+
+\section{Exercise 4}
+To generate a symmetric positive definite (SPD) matrix, one approach is to use the MATLAB command:
+\begin{verbatim}
+    A = gallery('wathen', 100, 100);
+
+\end{verbatim}
+ The matrix A serves as the coefficient matrix, and b corresponds to the right-hand side generated from a random vector solution. To assess the performance, we compare the results obtained with the non-preconditioned Conjugate Gradient (CG) method against those achieved with Jacobi and IC(0) preconditioners. The following image shows the results:
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{ES4.jpg}
+    \caption{PCG Matlab vs implemented PCG}
+    \label{PCG Matlab vs implemented PCG}
+\end{figure}
+The fact that the results obtained without any preconditioner require 300 iterations, significantly more than the other two methods, underscores the impact of preconditioning on convergence. Among the preconditioners employed, IC(0) demonstrates superior efficiency and accuracy, making it a favorable choice for a linear system. 
+
+\section{Exercise 5}
+In this exercise, the implementation of the GMRES method (without restart) is presented as a MATLAB function following the algorithm provided in the slides. The function has the following syntax:
+\begin{verbatim}
+    function [x, iter, resvec, flag] = mygmres(A, b, tol, maxit, x0)
+\end{verbatim}
+
+
+We follow the algorithm studied during lessons, in particular computing the QR factorization, to reduce the computational cost.
+\begin{verbatim}
+Input: x0, A, b, kmax, tol
+r0 = b - Ax0, k = 0, rho0 = ||r0||^2, beta = rho0, v1 = r0 / beta
+
+while rho_k > tol * ||b||^2 and k < kmax do
+    1. k = k + 1
+    2. v_k+1 = Av_k
+    3. for j = 1 to k do
+         h_jk = vₖ₊₁ᵀv_j
+         v_k+1 = v_k+1 - h_jk v_j
+       end for
+    4. h_k+1,k = k ||v_k+1||^2
+    5. v_k+1 = v_k+1 / h_k+1,k
+    6. Compute the QR factorization of H_k+1,k: H_k+1,k = QR.
+    7. rho_k = |beta * q₁,k₊₁|
+end while
+
+y_k = argminₖ beta * e₁ - H_k+1,k y_k₂ by using the QR factorization of H_k+1,k
+x_k = x0 + V_k
+y_k
+
+
+\end{verbatim}
+In particular, the minimization of the residual can be written as
+
+\begin{equation}
+  \lVert r_k \rVert_2=
+ \min_{y_k} \lVert\beta e_1 - H_{m+1,m} y_k\rVert_2 
+\end{equation}
+
+We factorize $  H_{m+1,m} = QR,$
+ with $ Q $ being orthogonal of size $((m + 1) \times (m + 1))$ and
+R of size ((m + 1)$ \times$ m), where the$  ( m \times m )$ submatrix of R is upper triangular and the last row is equal to zero.
+
+After computing the QR factorization:\\
+\(H_{m+1,m} = QR\) (computational cost \(O(m^3)\)), we have
+\begin{equation}
+\min_k  \lVert\beta e_1 - H_{m+1,m}y_k\rVert_2 = \min_k  \lVert\beta Q^T e_1 - Ry_k^2 \rVert_2= \min_k \lVert g - Ry_k\rVert_2,
+\end{equation}
+where $ g = \beta Q^T e_1 $.
+
+
+We solve the linear system $Ax = b$ with b corresponding to an exact solution
+with components $x_i =\sqrt{\frac{1}{x_i}}$ using the GMRES implementation with tolerance $1e^{-10}$, maximum iteration 550, and x0 all zero vector. The following graph shows the solutions:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{ES5.jpg}
+    \caption{implemented GMRES}
+    \label{PCG Matlab vs implemented PCG}
+\end{figure}
+
+To check the correctness of the function We compare the implemented non-preconditioned GMRES with the preconditioned one in the following section. As expected the non-preconditioned one takes more iteration to get to the final results.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{es5_2.jpg}
+    \caption{implemented GMRES}
+    \label{PCG Matlab vs implemented PCG}
+\end{figure}
+\section{Exercise 6}
+
+We implement the preconditioned GMRES method without restarting as a Matlab function with the following syntax
+\begin{verbatim}
+function[x,iter,resvec,flag]=myprecgmres(A,b,tol,maxit,x0,L,U)
+\end{verbatim}
+We implement the program modifying the non-preconditioned GMRES, using as preconditioner a matrix M such that 
+\begin{equation}
+    M^{-1}Ax=M^{-1}b
+\end{equation}
+In this case the initial residual becomes $r_{0}= M^{-1}(b-Ax_{0})$ and $v_{k+1}=M^{-1}Av_{k}$. This last step is implemented as 
+\begin{align*}
+    &z=Av_{k}\\
+    &w=L\backslash z\\
+    &v_{k+1}=U \backslash w\\
+\end{align*}
+We compute, using the matrix A given for the exercise,  the ILU preconditioner with drop tolerance 0.1. We use b as the corresponding to an exact solution with components $x_i =\frac{1}{\sqrt{i}}$. As for the other impute parameters We use maximum iteration 550 and tolerance 1e-10.\\
+We compare the results obtained with the function myprecgmres with the Matlab function gmres. The comparisons are shown in the Table and graph below:
+\begin{table}[H]
+    \centering
+   
+    \begin{tabular}{ccc}
+        \toprule
+        Method & Iterations & Last Residual Vector \\
+        \midrule
+        MATLAB GMRES & 38 & \(1.5592 \times 10^{-10}\) \\
+        Implemented GMRES & 38 & \(1.5592 \times 10^{-10}\) \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{es6.jpg}
+    \caption{implemented GMRES}
+    \label{PCG Matlab vs implemented PCG}
+\end{figure}
+
+\section{Exercised 7}
+Using the same matrix A and vector b from the previous section we solve the linear system Ax=b. In this case, using Matlab GMRES with tolerance 1e-12, different restart 10,20,30,50, and the ILU preconditioner with droptol 1e-2.\\
+In the next table, we analyze the difference between the various restart methods:
+\begin{table}[H]
+    \centering
+    
+    \begin{tabular}{cccc}
+        \toprule
+        Restart & Total Iterations & Relres & CPU Time (s) \\
+        \midrule
+        10 & 1339 & \(9.9 \times 10^{-13}\) & 1.6 \\
+        20 & 720 & \(6.4 \times 10^{-13}\) & 0.9 \\
+        30 & 88 & \(6.7 \times 10^{-13}\) & 0.1 \\
+        50 & 41 & \(4.8 \times 10^{-13}\) & 0.06 \\
+        190 & 41 & \(4.8 \times 10^{-13}\) & 0.07 \\
+        5000 & 41 & \(4.8 \times 10^{-13}\) & 0.1 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+We solve the system with other two restarts of 190 and 5000 to better analyze the method. In general larger restart value allows for a larger Krylov subspace, potentially improving convergence, but it comes with increased memory requirements. When the number of iterations becomes large, order of a hundred, the cost may be prohibitive. In this case, the total iteration is not enough high, and is better to use no restart.\\
+As we can see the total iteration needed to get to the final vector x is 41, so increasing the iterations from 41 will increase the CPU time. This is shown in the CPU time of restart 190 and 5000 which are higher than the one in 50. On the other hand, using a too-short restart number has a high computational cost. In conclusion, because the total iteration without restart is relatively small, is more efficient and precise to use GMRES without restart.\\
+In the next plot, we can see the convergence and iteration numbers of the thirst five restarts in comparison.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{ES7.jpg}
+    \label{PCG Matlab vs implemented PCG}
+\end{figure}
+\section{Exercise 8}
+In this exercise, We compute several ILU preconditioned GMRES with different drop tolerances $(droptol = 2 \times 10^{-2}, 10^{-2}, 3 \times 10^{-3}, 10^{-3}, 10^{-4}, 10^{-5}) $ keeping the restart parameter fixed to 50 .\\  
+For Incomplete LU, the Drop tolerance field is used to tune the maximum allowed sizes of dropped (neglected) elements. A smaller drop tolerance means that the preconditioner drops fewer elements and so the preconditioner becomes more accurate.\\
+In the next plot, we show the convergence profile of the six runs on the same figure.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{es8.jpg}
+    
+    \label{PCG Matlab vs implemented PCG}
+\end{figure}
+
+
+\begin{table}[H]
+    \centering
+  
+    \begin{tabular}{ccccccc}
+        \toprule
+        Droptol & Iterations & tprec (s) & tsol (s) & ttot (s) & Res. Norm & $\rho$ \\
+        \midrule
+        $2 \times 10^{-2}$ & 1316 & 35.2 & 37.9 & 73.1 & $9.9 \times 10^{-9}$ & 0.5 \\
+        $10^{-2}$ & 444 & 40.9 & 11.4 & 52.3 & $9.9 \times 10^{-9}$ & 0.6 \\
+        $3 \times 10^{-3}$ & 150 & 40.7 & 7.4 & 48.1 & $9.3 \times 10^{-9}$ & 0.9 \\
+        $10^{-3}$ & 67 & 39.7 & 2.8 & 42.5 & $9.9 \times 10^{-9}$ & 1.5 \\
+        $10^{-4}$ & 26 & 45.3 & 1.6 & 47.0 & $6.6 \times 10^{-9}$ & 3.5 \\
+        $10^{-5}$ & 12 & 87.3 & 1.5 & 88.8 & $4.0 \times 10^{-9}$ & 9.1 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+If $\rho$ is close to zero, it indicates that the preconditioner introduces very few non-zero entries compared to the original matrix. If $\rho$ is significantly larger, it implies that the preconditioner introduces a notable number of non-zero entries. In fact, when the tolerance gets smaller the time spent to calculate the preconditioner is higher, and the density increases. The norm of residual as expected get smaller with the precision of the preconditioner.
+\end{document}
+
+
+
+
